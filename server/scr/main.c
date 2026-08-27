@@ -1,11 +1,11 @@
 // file_share server component to share files between hosts
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <arpa/inet.h>
 #include <string.h>
-#include <netdb.h>
+#include <unistd.h>
 
 #define PORT "49701"
 #define MESSAGE_LEN_SIZE 4
@@ -28,7 +28,7 @@ ssize_t recv_all(int fd, void *buf, size_t buf_len, int flag)
 	while(received < buf_len)
 	{
 		ssize_t n = recv(fd, ptr + received, buf_len - received, flag);
-		if (n <  0) return -1;
+		if (n <  0) return -1; // recv error
 		if (n == 0) break; // peer closed connection
 		received += n;
 	}
@@ -67,6 +67,7 @@ int bind_addr(struct addrinfo* addr_list, int *sock_fd)
 			*sock_fd = -1;
 			continue;
 		}
+
 		if (bind(*sock_fd, p->ai_addr, p->ai_addrlen) == -1) {
 			close(*sock_fd);
 			*sock_fd = -1;
@@ -81,25 +82,23 @@ int bind_addr(struct addrinfo* addr_list, int *sock_fd)
 //
 int main(void)
 {
-	int client_fd = -1;
-	int server_fd = -1;
 	struct addrinfo *addr;
 	struct addrinfo hints;
-	uint32_t file_name_len; 
 
 	memset(&hints, 0, sizeof hints);
 
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM; 
 	hints.ai_flags = AI_PASSIVE; 
+	
+	int status;
+	if ((status = getaddrinfo(NULL, PORT, &hints, &addr)) != 0)
+	{
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+			exit(1);
+	}
 
-	int status = getaddrinfo(
-			NULL,
-			PORT,
-			&hints,
-			&addr
-			);
-
+	int server_fd;
 	if (bind_addr(addr, &server_fd) == -1) 
 	{
 		perror("bind failed");
@@ -116,6 +115,7 @@ int main(void)
 
 	printf("Waiting for connection...\n");
 
+	int client_fd;
 	if ((client_fd = accept(server_fd, NULL, NULL)) == -1)
 	{
 		perror("accept");
@@ -127,14 +127,13 @@ int main(void)
 	// then capture the file requested into some sort of variable
 	
 	// find the length of the file name
+	uint32_t file_name_len; 
 	ssize_t mess_len_check = recv_all(client_fd, &file_name_len, MESSAGE_LEN_SIZE, 0);
 	if (mess_len_check == -1)
 	{
 		perror("recv_all did not receive message length");
 		exit(1);
 	}
-
-	printf("received length: %zd bytes\n", mess_len_check);
 
 	if (mess_len_check != MESSAGE_LEN_SIZE)
 	{
