@@ -1,12 +1,12 @@
 // file_share client side 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #define PORT "49701"
 
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 	int sock_fd;
 	char ipstr[INET6_ADDRSTRLEN];
 	
-	if (argc != 2) { // TODO: need to extend this to reflect user input!!
+	if (argc != 3) { // TODO: need to extend this to reflect user input!!
 		fprintf(stderr, "bad try\n");
 		return 1;
 	}
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
 	
 	// TODO: make the message a user input
-	char *msg = "Hello fellow Strongpaw";
+	char *msg = argv[2];
 	uint32_t msg_len = strlen(msg);
 	uint32_t net_msg_len = htonl(msg_len);
 
