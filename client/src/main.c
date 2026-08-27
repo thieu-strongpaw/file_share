@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 	int sock_fd;
 	char ipstr[INET6_ADDRSTRLEN];
 	
-	if (argc != 3) { // TODO: need to extend this to reflect user input!!
+	if (argc != 3) {
 		fprintf(stderr, "bad try\n");
 		return 1;
 	}
@@ -65,7 +65,6 @@ int main(int argc, char *argv[])
 	printf("Sending data...\n");
 
 	
-	// TODO: make the message a user input
 	char *msg = argv[2];
 	uint32_t msg_len = strlen(msg);
 	uint32_t net_msg_len = htonl(msg_len);

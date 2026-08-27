@@ -24,3 +24,7 @@
 *.app
 
 *.dwo
+
+# executible names
+fs_share
+fs_send
