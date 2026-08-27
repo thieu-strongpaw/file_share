@@ -50,9 +50,9 @@ int bind_addr(struct addrinfo* addr_list, int *sock_fd)
 	for (p = addr_list; p != NULL; p = p->ai_next)
 	{
 		*sock_fd = socket(
-				addr_list->ai_family,
-				addr_list->ai_socktype,
-				addr_list->ai_protocol
+				p->ai_family,
+				p->ai_socktype,
+				p->ai_protocol
 			);
 
 		if (*sock_fd == -1)
@@ -67,7 +67,7 @@ int bind_addr(struct addrinfo* addr_list, int *sock_fd)
 			*sock_fd = -1;
 			continue;
 		}
-		if (bind(*sock_fd, addr_list->ai_addr, addr_list->ai_addrlen) == -1) {
+		if (bind(*sock_fd, p->ai_addr, p->ai_addrlen) == -1) {
 			close(*sock_fd);
 			*sock_fd = -1;
 			continue;
@@ -116,7 +116,7 @@ int main(void)
 
 	printf("Waiting for connection...\n");
 
-	if ((client_fd = accept(server_fd, NULL, NULL) == -1))
+	if ((client_fd = accept(server_fd, NULL, NULL)) == -1)
 	{
 		perror("accept");
 		close(server_fd);
@@ -134,15 +134,15 @@ int main(void)
 		exit(1);
 	}
 
+	printf("received length: %zd bytes\n", mess_len_check);
+
 	if (mess_len_check != MESSAGE_LEN_SIZE)
 	{
-		perror("client disconnected before filename length was received\n");
+		fprintf(stderr, "client disconnected before filename length was received\n");
 		exit(1);
 	}
 
 	file_name_len = ntohl(file_name_len);
-
-	printf("size of file name: %d", file_name_len);
 
 	// use the length of the file name to grab the rest of the file name from buffer
 	char *file_name_buf = malloc(file_name_len + 1);
