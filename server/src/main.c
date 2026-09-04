@@ -1,10 +1,11 @@
-// file_share server component to share files between hosts
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define PORT "49701"
@@ -12,7 +13,7 @@
 // mr. Chat-gitpy points out that the uint32_t only holds four bytes.
 // The MESSAGE_LEN_SIZE could be made larger but that would break this varible type
 // It suggests using a _Static_assert like this:
-// _Static_assert(sizeof(uint32_t) = FILE_NAME_LEN_SIZE, "Filename length field 
+// _Static_assert(sizeof(uint32_t) == MESSAGE_LEN_SIZE, "Filename length field 
 // must be 4 bytes");
 
 // SECTION: function declarations
@@ -22,7 +23,7 @@
 // buf is a pointer to a buffer to receive the data.
 ssize_t recv_all(int fd, void *buf, size_t buf_len, int flag)
 {
-	int received = 0;
+	size_t received = 0;
 	char *ptr = buf;
 
 	while(received < buf_len)
@@ -110,6 +111,7 @@ int main(void)
 	{
 		perror("listen failed");
 		close(server_fd);
+		freeaddrinfo(addr);
 		exit(1);
 	};
 
@@ -152,12 +154,52 @@ int main(void)
 	}
 
 	ssize_t mess_check = recv_all(client_fd, file_name_buf, file_name_len, 0);
-	if (mess_check > 0)
+	if (mess_check == -1)
 	{
-		file_name_buf[file_name_len] = '\0';
-		printf("Message reads: %s\n", file_name_buf);
+		perror("recv_all did not receive message");
+	}
+	if ((uint32_t)mess_check != file_name_len)
+	{
+		fprintf(stderr, "client disconnected before filename length was received\n");
+	}
+	
+	file_name_buf[file_name_len] = '\0';
+	printf("File name reads: %s\n", file_name_buf);
+
+	// We want to keep the requested files only coming from allowed directories.
+	// For now, we will just prepend this file path 
+	#define FS_SHARE_D_PATH "~/Documents/fs_share_d/"
+
+	FILE *requested_file = fopen(file_name_buf, "rb");
+	if (requested_file == NULL)
+	{
+		perror("fopen");
+		exit(1);
 	}
 
+	struct stat requested_file_info;
+
+	if (fstat(fileno(requested_file), &requested_file_info) == -1)
+	{
+		perror("fstat");
+		exit(1);
+	}
+
+	off_t requested_file_size = requested_file_info.st_size;
+
+	unsigned char requested_file_buf[requested_file_size];
+
+	size_t bytes_read = fread(requested_file_buf, 1, sizeof requested_file_buf, requested_file);
+
+	printf("File size is: %zu bytes\n", bytes_read);
+
+	fclose(requested_file);
+	free(file_name_buf);
+	fclose(requested_file);
+	close(client_fd);
+	close(server_fd);
+
+	
 
 	return 0;
 }
