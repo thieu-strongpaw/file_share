@@ -7,6 +7,10 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <endian.h>
+
 
 #include "send_all.h"
 #include "Queue.h"
@@ -70,7 +74,31 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	printf("Message sent success!\n");
+	printf("File request sent success!\n");
+
+	// Now recieve the length of the requested file
+	
+	uint64_t file_size_net;
+
+	ssize_t n = recv_all(sock_fd, &file_size_net, sizeof file_size_net, 0);
+
+	if (n == -1) 
+	{
+		perror("recv_all file size failed");
+		exit(1);
+	}
+
+	if (n != sizeof file_size_net) 
+	{
+		fprintf(stderr, "Server disconnected before file size wass received\n");
+		exit(1);
+	}
+
+	uint64_t file_size = be64toh(file_size_net);
+
+	printf("File size: %" PRIu64 " bytes\n", file_size);
+
+	// now send file content:
 
 	return 0;
 };
