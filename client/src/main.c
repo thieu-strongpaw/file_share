@@ -8,26 +8,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "send_all.h"
 #include "Queue.h"
 
 #define PORT "49701"
 
-
-ssize_t send_all(int fd, void *buf, size_t buf_len, int flag)
-{
-	int sent = 0;
-	char *ptr = buf;
-
-	while(sent < buf_len)
-	{
-		ssize_t n = send(fd, ptr + sent, buf_len - sent, flag);
-		if (n <  0) return -1;
-		if (n == 0) break; // peer closed connection
-		sent += n;
-	}
-
-	return sent;
-}
 
 int main(int argc, char *argv[])
 {
@@ -35,7 +20,6 @@ int main(int argc, char *argv[])
 	struct addrinfo hints, *res, *p;
 	int status_getaddr, status_send; 
 	int sock_fd;
-	char ipstr[INET6_ADDRSTRLEN];
 	
 	if (argc != 3) {
 		fprintf(stderr, "bad try\n");
@@ -74,7 +58,7 @@ int main(int argc, char *argv[])
 	// need to construct a packet for my protocal.
 	// it is combining two types and IDK how to do that....
 	// uint32_t and a char buffer
-	if ((status_send = send_all(sock_fd, &net_msg_len, sizeof net_msg_len, 0) == -1))
+	if ((status_send = send_all(sock_fd, &net_msg_len, sizeof net_msg_len, 0)) == -1)
 	{
 		perror("send_all message length failed");
 		exit(1);

@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "Queue.h"
+#include "recv_all.h"
+#include "send_all.h"
+
 #define PORT "49701"
 #define MESSAGE_LEN_SIZE 4
 // mr. Chat-gitpy points out that the uint32_t only holds four bytes.
@@ -16,26 +20,7 @@
 // _Static_assert(sizeof(uint32_t) == MESSAGE_LEN_SIZE, "Filename length field 
 // must be 4 bytes");
 
-// SECTION: function declarations
 
-// recv_all() wraps recv() to insure that all bytes sent are actually recieved
-// fd is the remote connections file discriptor.
-// buf is a pointer to a buffer to receive the data.
-ssize_t recv_all(int fd, void *buf, size_t buf_len, int flag)
-{
-	size_t received = 0;
-	char *ptr = buf;
-
-	while(received < buf_len)
-	{
-		ssize_t n = recv(fd, ptr + received, buf_len - received, flag);
-		if (n <  0) return -1; // recv error
-		if (n == 0) break; // peer closed connection
-		received += n;
-	}
-
-	return received;
-}
 
 /* bind_addr() wraps the bind() function. It will walk the linked
  * returned by getaddrinfo() and returns the file discriptor of the 
@@ -187,19 +172,27 @@ int main(void)
 
 	off_t requested_file_size = requested_file_info.st_size;
 
-	unsigned char requested_file_buf[requested_file_size];
+	printf("File size is: %zu bytes\n", requested_file_size);
 
-	size_t bytes_read = fread(requested_file_buf, 1, sizeof requested_file_buf, requested_file);
+	// Using a circular queue we read and send chuncks of the file.
+	unsigned char requested_file_buf[4096];
 
-	printf("File size is: %zu bytes\n", bytes_read);
+	size_t bytes_read;
+	while ((bytes_read = fread(requested_file_buf, 1, sizeof requested_file_buf, requested_file)) > 0)
+	{
+		send_all(client_fd, requested_file_buf, bytes_read, 0);
+	}
+
+	if (ferror(requested_file))
+	{
+		perror("fread");
+	}
+
 
 	fclose(requested_file);
 	free(file_name_buf);
-	fclose(requested_file);
 	close(client_fd);
 	close(server_fd);
 
 	
-
-	return 0;
 }
