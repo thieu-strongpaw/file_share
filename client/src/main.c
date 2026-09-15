@@ -8,6 +8,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "Queue.h"
+
 #define PORT "49701"
 
 

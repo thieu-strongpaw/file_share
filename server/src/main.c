@@ -153,14 +153,14 @@ int main(void)
 		exit(1);
 	}
 
-	ssize_t mess_check = recv_all(client_fd, file_name_buf, file_name_len, 0);
-	if (mess_check == -1)
+	ssize_t file_name_len_check = recv_all(client_fd, file_name_buf, file_name_len, 0);
+	if (file_name_len_check == -1)
 	{
-		perror("recv_all did not receive message");
+		perror("recv_all did not receive file name.");
 	}
-	if ((uint32_t)mess_check != file_name_len)
+	if ((uint32_t)file_name_len_check != file_name_len)
 	{
-		fprintf(stderr, "client disconnected before filename length was received\n");
+		fprintf(stderr, "client disconnected before full filename was received\n");
 	}
 	
 	file_name_buf[file_name_len] = '\0';
