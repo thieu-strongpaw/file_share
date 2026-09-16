@@ -1,8 +1,12 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Ishared/include
 
-CLIENT_SRC = client/src/main.c shared/src/Queue.c shared/src/recv_all.c shared/src/send_all.c
-SERVER_SRC = server/src/main.c shared/src/Queue.c shared/src/recv_all.c shared/src/send_all.c
+SHARED_SRC = shared/src/Queue.c \
+						 shared/src/recv_all.c \
+						 shared/src/send_all.c
+
+CLIENT_SRC = client/src/main.c $(SHARED_SRC) 
+SERVER_SRC = server/src/main.c $(SHARED_SRC)
 
 CLIENT = client/src/fs_request
 SERVER = server/src/fs_share

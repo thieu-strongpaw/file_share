@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdint.h>
@@ -7,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <endian.h>
 
 #include "Queue.h"
 #include "recv_all.h"
@@ -59,7 +61,7 @@ int bind_addr(struct addrinfo* addr_list, int *sock_fd)
 			*sock_fd = -1;
 			continue;
 		}
-		return 1;
+return 1;
 	}
 	return -1;
 }
@@ -131,6 +133,13 @@ int main(void)
 	file_name_len = ntohl(file_name_len);
 
 	// use the length of the file name to grab the rest of the file name from buffer
+#define MAX_FILE_NAME_LEN 4096
+	if (file_name_len == 0 || file_name_len > MAX_FILE_NAME_LEN)
+	{
+		fprintf(stderr, "Invalid filename length\n");
+		exit(1);
+	}
+
 	char *file_name_buf = malloc(file_name_len + 1);
 	if (file_name_buf == NULL)
 	{
@@ -142,10 +151,15 @@ int main(void)
 	if (file_name_len_check == -1)
 	{
 		perror("recv_all did not receive file name.");
+		free(file_name_buf);
+		exit(1);
 	}
+
 	if ((uint32_t)file_name_len_check != file_name_len)
 	{
 		fprintf(stderr, "client disconnected before full filename was received\n");
+		free(file_name_buf);
+		exit(1);
 	}
 	
 	file_name_buf[file_name_len] = '\0';
@@ -170,23 +184,40 @@ int main(void)
 		exit(1);
 	}
 
-	off_t requested_file_size = requested_file_info.st_size;
+	uint64_t requested_file_size = (uint64_t)requested_file_info.st_size;
 
-	printf("File size is: %zu bytes\n", requested_file_size);
+	printf("File size is: %" PRIu64 " bytes\n", requested_file_size);
 
 	// Using a circular queue we read and send chuncks of the file.
 	unsigned char requested_file_buf[4096];
+	
+	printf("Sending file content...");
+	uint64_t requested_file_size_net = htobe64(requested_file_size);
+
+	if (send_all(client_fd, &requested_file_size_net, sizeof requested_file_size, 0) == -1)
+	{
+		perror("send_all file size failed");
+		exit(1);
+	}
+
 
 	size_t bytes_read;
 	while ((bytes_read = fread(requested_file_buf, 1, sizeof requested_file_buf, requested_file)) > 0)
 	{
-		send_all(client_fd, requested_file_buf, bytes_read, 0);
+		if (send_all(client_fd, requested_file_buf, bytes_read, 0) == -1)
+		{
+		perror("send_all file content failed");
+		exit(1);
+		}	
 	}
 
 	if (ferror(requested_file))
 	{
 		perror("fread");
+		exit(1);
 	}
+
+	printf("Sending complete\n");
 
 
 	fclose(requested_file);

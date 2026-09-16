@@ -11,9 +11,8 @@
 #include <inttypes.h>
 #include <endian.h>
 
-
+#include "recv_all.h"
 #include "send_all.h"
-#include "Queue.h"
 
 #define PORT "49701"
 
@@ -99,6 +98,44 @@ int main(int argc, char *argv[])
 	printf("File size: %" PRIu64 " bytes\n", file_size);
 
 	// now send file content:
+	#define FILE_BUF_SIZE 4096
+
+	FILE *output_file = fopen(msg, "wb");
+
+	if (output_file == NULL)
+	{
+		perror("fopen");
+		exit(1);
+	}
+
+	char file_buf[FILE_BUF_SIZE];
+	int bytes_received = 0;
+
+	while (bytes_received < file_size)
+	{
+		size_t remaining = file_size - bytes_received;
+
+		size_t chunk_size;
+		if (remaining < FILE_BUF_SIZE)
+		{
+			chunk_size = remaining;
+		} else {
+			chunk_size = FILE_BUF_SIZE;
+		}
+
+		ssize_t n = recv_all(sock_fd, file_buf, chunk_size, 0);
+
+		if (n <= 0) 
+		{
+			break;
+		}
+
+		fwrite(file_buf, 1, n, output_file);
+
+		bytes_received += n;
+		}
+
+	fclose(output_file);
 
 	return 0;
 };
