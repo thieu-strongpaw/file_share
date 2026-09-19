@@ -1,3 +1,4 @@
 CompileFlags:
   Add:
     - -I/home/thieu/file_share/shared/include
+    - -I/home/thieu/file_share/server/include
