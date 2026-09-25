@@ -10,58 +10,39 @@
 #include <unistd.h>
 #include <endian.h>
 
+#include "fs_core_init.h"
 #include "bind_addr.h"
 #include "recv_all.h"
 #include "send_all.h"
 
-#define PORT "49701"
-#define MESSAGE_LEN_SIZE 4
+#define MAX_FILE_NAME_LEN 4
 // mr. Chat-gitpy points out that the uint32_t only holds four bytes.
-// The MESSAGE_LEN_SIZE could be made larger but that would break this varible type
+// The MAX_FILE_NAME_LEN could be made larger but that would break this varible type
 // It suggests using a _Static_assert like this:
-// _Static_assert(sizeof(uint32_t) == MESSAGE_LEN_SIZE, "Filename length field 
+// _Static_assert(sizeof(uint32_t) == MAX_FILE_NAME_LEN, "Filename length field 
 // must be 4 bytes");
 
 
-
-
-// Section: main loop
-//
 int main(void)
 {
-	struct addrinfo *addr;
-	struct addrinfo hints;
-
-	memset(&hints, 0, sizeof hints);
-
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM; 
-	hints.ai_flags = AI_PASSIVE; 
+	// Server side logic
 	
-	int status;
-	if ((status = getaddrinfo(NULL, PORT, &hints, &addr)) != 0)
-	{
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
-			exit(1);
-	}
-
+	struct addrinfo *addr;
 	int server_fd;
-	if (bind_addr(addr, &server_fd) == -1) 
+	
+	int core_status = fs_core_init(addr, server_fd); // sets up address and starts listening.
+	if (core_status != 1)
 	{
-		perror("bind failed");
-		freeaddrinfo(addr);
-		exit(1); // could not bind to the server address. Crash program.
+		printf("fs_core_init failed.");
 	}
 
-	if (listen(server_fd, 1) == -1)
-	{
-		perror("listen failed");
-		close(server_fd);
-		freeaddrinfo(addr);
-		exit(1);
-	};
-
+	// Somewhere here we end fs_core_init(). If it works, we print "waiting for..."
+	
 	printf("Waiting for connection...\n");
+
+	// client_connect() // connect to clients that reach server.
+	// TODO: Each connection needs to be spun off to its own thread. 
+	// TODO: What are threads... fork to like eat?
 
 	int client_fd;
 	if ((client_fd = accept(server_fd, NULL, NULL)) == -1)
@@ -74,16 +55,20 @@ int main(void)
 	// We now have the connection. We need to read client message
 	// then capture the file requested into some sort of variable
 	
+	// end client_connect()
+
+	// get_file_request()
+
 	// find the length of the file name
 	uint32_t file_name_len; 
-	ssize_t mess_len_check = recv_all(client_fd, &file_name_len, MESSAGE_LEN_SIZE, 0);
+	ssize_t mess_len_check = recv_all(client_fd, &file_name_len, MAX_FILE_NAME_LEN, 0);
 	if (mess_len_check == -1)
 	{
 		perror("recv_all did not receive message length");
 		exit(1);
 	}
 
-	if (mess_len_check != MESSAGE_LEN_SIZE)
+	if (mess_len_check != MAX_FILE_NAME_LEN)
 	{
 		fprintf(stderr, "client disconnected before filename length was received\n");
 		exit(1);
@@ -92,7 +77,6 @@ int main(void)
 	file_name_len = ntohl(file_name_len);
 
 	// use the length of the file name to grab the rest of the file name from buffer
-#define MAX_FILE_NAME_LEN 4096
 	if (file_name_len == 0 || file_name_len > MAX_FILE_NAME_LEN)
 	{
 		fprintf(stderr, "Invalid filename length\n");
@@ -123,6 +107,10 @@ int main(void)
 	
 	file_name_buf[file_name_len] = '\0';
 	printf("File name reads: %s\n", file_name_buf);
+	
+	// End get_file_request()
+
+	// handle_request() // Takes the file name, validates the file, send file.
 
 	// We want to keep the requested files only coming from allowed directories.
 	// For now, we will just prepend this file path 
@@ -177,6 +165,8 @@ int main(void)
 	}
 
 	printf("Sending complete\n");
+
+	// end handle_request()
 
 
 	fclose(requested_file);
