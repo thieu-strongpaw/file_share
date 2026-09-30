@@ -1,3 +1,5 @@
+// m
+
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -11,11 +13,10 @@
 #include <endian.h>
 
 #include "fs_core_init.h"
-#include "bind_addr.h"
 #include "recv_all.h"
 #include "send_all.h"
 
-#define MAX_FILE_NAME_LEN 4
+#define MAX_FILE_NAME_LEN 255
 // mr. Chat-gitpy points out that the uint32_t only holds four bytes.
 // The MAX_FILE_NAME_LEN could be made larger but that would break this varible type
 // It suggests using a _Static_assert like this:
@@ -28,13 +29,16 @@ int main(void)
 	// Server side logic
 	
 	int server_fd = fs_core_init(); // sets up address and starts listening.
+
 	if (server_fd == -1)
 	{
 		printf("fs_core_init failed.");
 	}
 
-	// Somewhere here we end fs_core_init(). If it works, we print "waiting for..."
-	
+	// Would it make sense to have a function that takes care of printing to the terminal?
+	// I think that there is an argumenet that having a central engine to drive the the UI
+	// could be usefull. 
+
 	printf("Waiting for connection...\n");
 
 	// client_connect() // connect to clients that reach server.
@@ -49,23 +53,22 @@ int main(void)
 		exit(1);
 	};
 
-	// We now have the connection. We need to read client message
-	// then capture the file requested into some sort of variable
 	
 	// end client_connect()
 
-	// get_file_request()
+	// handle_client()
 
 	// find the length of the file name
 	uint32_t file_name_len; 
-	ssize_t mess_len_check = recv_all(client_fd, &file_name_len, MAX_FILE_NAME_LEN, 0);
+	ssize_t mess_len_check = recv_all(client_fd, &file_name_len, sizeof file_name_len, 0);
+
 	if (mess_len_check == -1)
 	{
 		perror("recv_all did not receive message length");
 		exit(1);
 	}
 
-	if (mess_len_check != MAX_FILE_NAME_LEN)
+	if (mess_len_check != sizeof file_name_len)
 	{
 		fprintf(stderr, "client disconnected before filename length was received\n");
 		exit(1);
@@ -105,7 +108,7 @@ int main(void)
 	file_name_buf[file_name_len] = '\0';
 	printf("File name reads: %s\n", file_name_buf);
 	
-	// End get_file_request()
+	// End handle_client()
 
 	// handle_request() // Takes the file name, validates the file, send file.
 

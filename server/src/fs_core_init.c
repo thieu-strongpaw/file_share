@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "fs_core_init.h"
 #include "bind_addr.h"
 
 #define PORT "49701"
