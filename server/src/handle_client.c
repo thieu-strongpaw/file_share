@@ -9,13 +9,9 @@
 #include "send_all.h"
 
 #define MAX_FILE_NAME_LEN 255
-// mr. Chat-gitpy points out that the uint32_t only holds four bytes.
-// The MAX_FILE_NAME_LEN could be made larger but that would break this varible type
-// It suggests using a _Static_assert like this:
-// _Static_assert(sizeof(uint32_t) == MAX_FILE_NAME_LEN, "Filename length field 
-// must be 4 bytes");
-//
-void handle_client(int client_fd){
+
+
+int handle_client(int client_fd){
 	// find the length of the file name
 	uint32_t file_name_len; 
 	ssize_t mess_len_check = recv_all(client_fd, &file_name_len, sizeof file_name_len, 0);
@@ -23,13 +19,13 @@ void handle_client(int client_fd){
 	if (mess_len_check == -1)
 	{
 		perror("recv_all did not receive message length");
-		exit(1);
+		return -1;
 	}
 
 	if (mess_len_check != sizeof file_name_len)
 	{
 		fprintf(stderr, "client disconnected before filename length was received\n");
-		exit(1);
+		return -1;
 	}
 
 	file_name_len = ntohl(file_name_len);
@@ -38,14 +34,14 @@ void handle_client(int client_fd){
 	if (file_name_len == 0 || file_name_len > MAX_FILE_NAME_LEN)
 	{
 		fprintf(stderr, "Invalid filename length\n");
-		exit(1);
+		return -1;
 	}
 
 	char *file_name_buf = malloc(file_name_len + 1);
 	if (file_name_buf == NULL)
 	{
 		perror("malloc failed");
-		exit(1);
+		return -1;
 	}
 
 	ssize_t file_name_len_check = recv_all(client_fd, file_name_buf, file_name_len, 0);
@@ -53,14 +49,14 @@ void handle_client(int client_fd){
 	{
 		perror("recv_all did not receive file name.");
 		free(file_name_buf);
-		exit(1);
+		return -1;
 	}
 
 	if ((uint32_t)file_name_len_check != file_name_len)
 	{
 		fprintf(stderr, "client disconnected before full filename was received\n");
 		free(file_name_buf);
-		exit(1);
+		return -1;
 	}
 	
 	file_name_buf[file_name_len] = '\0';
@@ -78,7 +74,7 @@ void handle_client(int client_fd){
 	if (requested_file == NULL)
 	{
 		perror("fopen");
-		exit(1);
+		return -1;
 	}
 
 	struct stat requested_file_info;
@@ -86,7 +82,7 @@ void handle_client(int client_fd){
 	if (fstat(fileno(requested_file), &requested_file_info) == -1)
 	{
 		perror("fstat");
-		exit(1);
+		return -1;
 	}
 
 	uint64_t requested_file_size = (uint64_t)requested_file_info.st_size;
@@ -102,7 +98,7 @@ void handle_client(int client_fd){
 	if (send_all(client_fd, &requested_file_size_net, sizeof requested_file_size, 0) == -1)
 	{
 		perror("send_all file size failed");
-		exit(1);
+		return -1;
 	}
 
 
@@ -112,14 +108,14 @@ void handle_client(int client_fd){
 		if (send_all(client_fd, requested_file_buf, bytes_read, 0) == -1)
 		{
 		perror("send_all file content failed");
-		exit(1);
+		return -1;
 		}	
 	}
 
 	if (ferror(requested_file))
 	{
 		perror("fread");
-		exit(1);
+		return -1;
 	}
 
 	printf("Sending complete\n");
@@ -129,4 +125,6 @@ void handle_client(int client_fd){
 
 	fclose(requested_file);
 	free(file_name_buf);
+
+	return 1;
 }

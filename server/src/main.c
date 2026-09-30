@@ -1,7 +1,8 @@
 // server/src/main.c
 
-#include <inttypes.h>
 #include <arpa/inet.h>
+#include <endian.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,17 +11,13 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <endian.h>
 
 #include "handle_client.h"
 #include "fs_core_init.h"
 
 
-
 int main(void)
 {
-	// Server side logic
-	
 	int server_fd = fs_core_init(); // sets up address and starts listening.
 
 	if (server_fd == -1)
@@ -34,22 +31,22 @@ int main(void)
 
 	printf("Waiting for connection...\n");
 
-	// client_connect() // connect to clients that reach server.
-	// TODO: Each connection needs to be spun off to its own thread. 
-	// TODO: What are threads... fork to like eat?
-
 	while(1)
 	{
 	int client_fd;
 
 	client_fd = accept(server_fd, NULL, NULL);
-	if (server_fd == -1)
+	if (client_fd == -1)
 	{
 		perror("accept");
 		continue;
 	};
 
-	handle_client(client_fd);
+	int handle_status = handle_client(client_fd);
+	if (handle_status == -1)
+	{
+		fprintf(stderr, "Client request failed\n");
+	}
 
 	close(client_fd);
 	}

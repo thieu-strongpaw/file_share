@@ -11,7 +11,7 @@
 
 #define PORT "49701"
 
-int fs_core_init()
+int fs_core_init(void)
 {
 	int server_fd = -1;
 	struct addrinfo *addr = NULL;
@@ -38,7 +38,7 @@ int fs_core_init()
 
 	freeaddrinfo(addr);
 
-	if (listen(server_fd, 1) == -1)
+	if (listen(server_fd, 10) == -1)
 	{
 		perror("listen failed");
 		close(server_fd);
