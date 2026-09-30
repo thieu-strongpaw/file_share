@@ -27,11 +27,8 @@ int main(void)
 {
 	// Server side logic
 	
-	struct addrinfo *addr;
-	int server_fd;
-	
-	int core_status = fs_core_init(addr, server_fd); // sets up address and starts listening.
-	if (core_status != 1)
+	int server_fd = fs_core_init(); // sets up address and starts listening.
+	if (server_fd == -1)
 	{
 		printf("fs_core_init failed.");
 	}

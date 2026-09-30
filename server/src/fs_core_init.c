@@ -8,8 +8,10 @@
 
 #define PORT "49701"
 
-int fs_core_init(struct addrinfo *addr, int server_fd)
+int fs_core_init()
 {
+	int server_fd = -1;
+	struct addrinfo *addr = NULL;
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof hints);
 
@@ -39,5 +41,5 @@ int fs_core_init(struct addrinfo *addr, int server_fd)
 		exit(1);
 	}
 
-	return 1;
+	return server_fd;
 }
