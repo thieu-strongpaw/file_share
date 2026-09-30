@@ -1,23 +1,24 @@
 # file_share
 ## Program to share files between nodes on my network.
 
+This is a project to learn network basics and client/server architecture. Security will be the last part added to the system. I hope for the file server to be the launching point for further server development. 
+
+The two componenets of the system are fs_request and fs_server.
+
 ### Interface
 
-Accessed from terminal
+Accessed from terminal.
 
-Example: $>file_share <target_file URL> <destination>
+The server should be launched from the directory that you wish to server files from. It will try to send any file in that directory over the network, so be cool.
 
-### Program Flow
+Example for the server:
 
-- User enters the URL for the file and the destination for the file
-- file_share_local pareses user input. 
-- file_share_local creates request for file
-- file_share_local sends request over TCP/IP
-- file_share_remote locates file
-- file_share_remote sends size of file
-- file_share_local creates buffer for file
-- file_share_remote sends data
-- file_share_local saves file to disk
+$>./fs_share
+
+Example for the client: 
+
+$>./fs_request <target_file URL> <destination>
+
 
 
 ### Issues
@@ -26,5 +27,4 @@ Example: $>file_share <target_file URL> <destination>
 - Needs optional arguments. At least the ability to rename requested file on client side.
 - The README is crap. Who writes this drivel. 
 - Need to consider multi-request situations. Can we take advantage of threads?
-- There is no need for the Queue.h. Remove this.
 - create and add some sort of standard for file headers. Something like file name and brief discription at the top...
