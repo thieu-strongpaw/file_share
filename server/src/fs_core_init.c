@@ -1,3 +1,5 @@
+// server/src/fs_core_init.c
+
 #include <stdio.h>
 #include <string.h>
 #include <netdb.h>
@@ -34,11 +36,12 @@ int fs_core_init()
 		exit(1); // could not bind to the server address. Crash program.
 	}
 
+	freeaddrinfo(addr);
+
 	if (listen(server_fd, 1) == -1)
 	{
 		perror("listen failed");
 		close(server_fd);
-		freeaddrinfo(addr);
 		exit(1);
 	}
 
